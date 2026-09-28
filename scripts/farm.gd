@@ -3,19 +3,33 @@ extends Node2D
 var tile_size = Vector2(16,16)
 var tiles :Dictionary = {}
 
+var default_crop = {
+	"rid": 0,
+	"name": "default",
+	"coords": Vector2.ZERO,
+	"rect": null,
+	"timer": null,
+	"stage": 0,
+	"quantity": 0,
+	"value": 0,
+	"time": 60/60,
+}
+@onready var sprites2 :Sprite2D= $SPR_Crops
+
 var sprites :Dictionary = {
 	"tomato": {
-		"stage1": preload("res://assets/food/ghostpixel/01_dish.png"), 
+		"stage1": preload("res://assets/food/ghostpixel/01_dish.png"),
 		"stage2": preload("res://assets/food/ghostpixel/04_bowl.png"), 
 		"quantity": 6, 
 		"value": 1, 
 		"time": 60},
 }
 
+# Growth stages for the sprite sheet
 enum GROWTH_STAGES {
-	EMPTY,
-	GROWING,
-	MATURED
+	EMPTY = 0,
+	GROWING = 1,
+	MATURED = 2,
 }
 
 func _ready():
@@ -52,7 +66,7 @@ func _input(_event :InputEvent):
 			newTimer.autostart = true
 			newTimer.timeout.connect(timer_done.bind(tile_coord))
 			tiles[tile_coord]["timer"] = newTimer
-			tiles[tile_coord]["produce_key"] = "tomato"
+			tiles[tile_coord]["produce_key"] = randi_range(0,1)
 			process_tile(tile_coord)
 			$TimerList.add_child(newTimer)
 		elif tiles[tile_coord]["stage"] == GROWTH_STAGES.GROWING:
@@ -84,6 +98,7 @@ func process_tile(tile_coord: Vector2):
 	process_sprite(tile_coord)
 
 func process_sprite(tile_coord :Vector2):
+	# create a new tile entry for the tile clicked
 	var tile :Dictionary = tiles[tile_coord]
 	
 	# if new stage is empty and the sprite isn't removed, remove the sprite
@@ -95,15 +110,19 @@ func process_sprite(tile_coord :Vector2):
 	
 	# if the sprite is null, create a new sprite
 	if tile["sprite"] == null:
-		var newSprite = Sprite2D.new()
-		newSprite.scale = Vector2(0.5, 0.5) # using a 32x32 during tests
+		var newSprite = sprites2.duplicate()
 		newSprite.position = tile_coord
 		$TileFilled.add_child(newSprite)
 		tiles[tile_coord]["sprite"] = newSprite
 	
 	# adjust sprite based on stage
+	# sprite sheet breakdown: 
+	# hframe 0 = growing
+	# hframe 1 = matured
+	# hframe 2 = item -> only used in the inventory
 	match tile["stage"]:
 		GROWTH_STAGES.GROWING:
-			tile["sprite"].texture = sprites[tiles[tile_coord]["produce_key"]]["stage1"]
+			tile["sprite"].visible = true
+			tile["sprite"].frame_coords = Vector2i(0, tile["produce_key"])
 		GROWTH_STAGES.MATURED:
-			tile["sprite"].texture = sprites[tiles[tile_coord]["produce_key"]]["stage2"]
+			tile["sprite"].frame_coords = Vector2i(1, tile["produce_key"])

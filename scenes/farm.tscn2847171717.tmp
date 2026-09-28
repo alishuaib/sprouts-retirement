@@ -906,7 +906,6 @@ position = Vector2(72, 71)
 [node name="TileFilled" type="Node2D" parent="." unique_id=504847565]
 
 [node name="SPR_Crops" type="Sprite2D" parent="." unique_id=1369691271]
-visible = false
 position = Vector2(142, 31)
 texture = ExtResource("15_ji0l8")
 hframes = 3
