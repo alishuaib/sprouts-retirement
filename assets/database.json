@@ -1,0 +1,22 @@
+{
+  "crops": {
+    "tomato": {
+      "rid": 0,
+      "name": "Tomato",
+      "description": "A beautiful red fruit. Wait, fruit?",
+      "max_stack": 999,
+      "value": 2,
+      "growth_time": 1,
+      "growth_quantity": 4,
+    },
+    "potato": {
+      "rid": 1,
+      "name": "Potato",
+      "description": "A dirty vegetable that has a lot of potential.",
+      "max_stack": 999,
+      "value": 3,
+      "growth_time": 2,
+      "growth_quantity": 3,
+    },
+  },
+}

@@ -37,7 +37,7 @@ func _ready():
 	var markers = get_node("MarkerList")
 	for row in markers.get_children():
 		for coord:Marker2D in row.get_children():
-			tiles[coord.position] = {"rect": Rect2(adjust_rect_position(coord.position), tile_size), "timer": null, "produce_Key": null, "stage": GROWTH_STAGES.EMPTY, "sprite": null}
+			tiles[coord.position] = {"rect": Rect2(adjust_rect_position(coord.position), tile_size), "timer": null, "rid": null, "stage": GROWTH_STAGES.EMPTY, "sprite": null}
 
 # because Rect2 position is top left and not middle of itself
 func adjust_rect_position(coord :Vector2):
@@ -52,7 +52,9 @@ func get_tile(mouse_position: Vector2):
 	
 
 func _input(_event :InputEvent):
+	# Check click coordinates and if it isn't inside the farm, nothing happens, else plant
 	if Input.is_action_just_released("Tile Select"):
+	
 		var mouse_position = get_local_mouse_position()
 		var tile_coord = get_tile(mouse_position)
 		if !tile_coord:
@@ -60,26 +62,43 @@ func _input(_event :InputEvent):
 		
 		# If click is within a tile, creates a timer 
 		if tiles[tile_coord]["stage"] == GROWTH_STAGES.EMPTY: 
-			var newTimer: Timer = Timer.new()
-			newTimer.wait_time = sprites["tomato"]["time"]/20
-			newTimer.one_shot = true
-			newTimer.autostart = true
-			newTimer.timeout.connect(timer_done.bind(tile_coord))
+			var crop = find_crop_by_rid(randi_range(0,1))
+			if !crop: return
+			
+			var newTimer = timer_create(crop, tile_coord)
 			tiles[tile_coord]["timer"] = newTimer
-			tiles[tile_coord]["produce_key"] = randi_range(0,1)
+			tiles[tile_coord]["rid"] = crop.rid
 			process_tile(tile_coord)
 			$TimerList.add_child(newTimer)
 		elif tiles[tile_coord]["stage"] == GROWTH_STAGES.GROWING:
 			print("in progress...")
 		elif tiles[tile_coord]["stage"] == GROWTH_STAGES.MATURED:
 			process_tile(tile_coord)
-	
+
+# Returns the crop associated to the rid
+func find_crop_by_rid(rid :int):
+	for key in Global.crops_db:
+		if Global.crops_db[key].rid == rid:
+			return Global.crops_db[key]
+	return
+
+# Creates a timer using a crop's growth time and ties it to the tile coordinate dictionary
+func timer_create(crop :Dictionary, tile_coord :Vector2):
+	var newTimer :Timer = Timer.new()
+	newTimer.wait_time = crop.growth_time
+	newTimer.one_shot = true
+	newTimer.autostart = true
+	newTimer.timeout.connect(timer_done.bind(tile_coord))
+	return newTimer
+
+# Frees up the timer from the active nodes
 func timer_done(tile_coord: Vector2):
 	if tiles[tile_coord]["timer"] != null:
 		tiles[tile_coord]["timer"].queue_free()
 		tiles[tile_coord]["timer"] = null
 		process_tile(tile_coord)
 
+# Progresses a crop based on current stage
 func process_tile(tile_coord: Vector2):
 	var tile :Dictionary = tiles[tile_coord]
 	
@@ -94,9 +113,9 @@ func process_tile(tile_coord: Vector2):
 			tile["stage"] = GROWTH_STAGES.EMPTY
 			print("tile has been collected and is now empty")
 	
-	# process tile based on new stage
 	process_sprite(tile_coord)
 
+# Updates a crop's sprite to match its new stage
 func process_sprite(tile_coord :Vector2):
 	# create a new tile entry for the tile clicked
 	var tile :Dictionary = tiles[tile_coord]
@@ -123,6 +142,6 @@ func process_sprite(tile_coord :Vector2):
 	match tile["stage"]:
 		GROWTH_STAGES.GROWING:
 			tile["sprite"].visible = true
-			tile["sprite"].frame_coords = Vector2i(0, tile["produce_key"])
+			tile["sprite"].frame_coords = Vector2i(0, tile["rid"])
 		GROWTH_STAGES.MATURED:
-			tile["sprite"].frame_coords = Vector2i(1, tile["produce_key"])
+			tile["sprite"].frame_coords = Vector2i(1, tile["rid"])
